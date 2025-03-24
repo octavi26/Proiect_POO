@@ -3,6 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <thread>
+#include <omp.h>
 
 #include <SFML/Graphics.hpp>
 
@@ -88,6 +89,18 @@ public:
     }
 
     /// My functions
+
+    float GetX() {
+        return x;
+    }
+
+    float GetY() {
+        return y;
+    }
+
+    float GetZ() {
+        return z;
+    }
 
     float Magnitude() {
         return std::sqrt(x * x + y * y + z * z);
@@ -212,8 +225,7 @@ public:
 
 class Circle : public Shape {
 public:
-    Circle() {
-    }
+    Circle(){}
     Circle(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
     }
@@ -226,9 +238,36 @@ public:
         Shape::operator=(other);
         return *this;
     }
+
+    /// My Functions
     bool Inside(Vector3 point) {
         point = Translate(point);
         return point.SquaredMagnitude() <= 1;
+    }
+};
+
+class Square : public Shape {
+public:
+    Square(){}
+    Square(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
+        : Shape(_position, _scale, _rotation) {
+    }
+    Square(const Square &other)
+        : Shape(other) {
+    }
+    Square & operator=(const Square &other) {
+        if (this == &other)
+            return *this;
+        Shape::operator=(other);
+        return *this;
+    }
+
+    /// My Functions
+    bool Inside(Vector3 point) {
+        point = Translate(point);
+        return point.GetX() >= -1.0/2 && point.GetX() <= 1.0/2 &&
+               point.GetY() >= -1.0/2 && point.GetY() <= 1.0/2 &&
+               point.GetZ() >= -1.0/2 && point.GetZ() <= 1.0/2;
     }
 };
 
@@ -348,10 +387,15 @@ public:
     }
 
     /// My functions
-    float Value(int x, int y, Circle shape) {
+    void SetRatio(int _columns, int _lines) {
+        lines = _lines;
+        columns = _columns;
+    }
+
+    float Value(int x, int y, Square shape) {
         Vector3 startPosition = position;
-        Vector3 pixelPoint = position + Vector3(-size * columns / 2, -size * lines / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
-        Vector3 endPosition = (pixelPoint - position).Normalize() * maxDistance + startPosition;
+        Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
+        // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
         Ray ray(startPosition, endPosition, samples);
 
         for (int k = 0; k < samples; ++k) {
@@ -371,25 +415,28 @@ int main() {
     delete c;
     ////////////////////////////////////////////////////////////////////////
 
-    Vector3 v{1, .25f, .45f};
-    Circle circle{Vector3{1, 0, 0}, Vector3{1, 1, 1} * 2,Vector3{0, 0, 0}};
-    std::cout << v << "\n";
-    std::cout << circle.Inside(v) << "\n";
-
-    /*
-
+    int width = 500, height = 500;
+    Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 16};
+    camera.SetRatio(width, height);
     sf::RenderWindow window;
     ///////////////////////////////////////////////////////////////////////////
     /// NOTE: sync with env variable APP_WINDOW from .github/workflows/cmake.yml:31
-    window.create(sf::VideoMode({800, 700}), "My Window", sf::Style::Default);
+    window.create(sf::VideoMode({static_cast<unsigned int>(width), static_cast<unsigned int>(height)}), "Render", sf::Style::Default);
     ///////////////////////////////////////////////////////////////////////////
     //
     ///////////////////////////////////////////////////////////////////////////
     /// NOTE: mandatory use one of vsync or FPS limit (not both)            ///
     /// This is needed so we do not burn the GPU                            ///
-    /// window.setVerticalSyncEnabled(true);                                ///
-    window.setFramerateLimit(60);                                           ///
+    window.setVerticalSyncEnabled(true);                                    ///
+    /// window.setFramerateLimit(60);                                       ///
     ///////////////////////////////////////////////////////////////////////////
+
+    sf::Texture texture;
+    texture.create(width, height);
+
+    sf::Sprite sprite(texture);
+
+    std::vector<sf::Uint8> pixels(width * height * 4);
 
     while(window.isOpen()) {
         bool shouldExit = false;
@@ -419,11 +466,28 @@ int main() {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(300ms);
 
+        #pragma omp parallel for collapse(2)
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int k = (y * width + x) * 4;
+                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 2, Vector3(0, 0, 0)));
+
+                sf::Uint8 intensity = static_cast<sf::Uint8>(value * 255);
+
+                pixels[k] = intensity;
+                pixels[k + 1] = intensity;
+                pixels[k + 2] = intensity;
+                pixels[k + 3] = 255;
+            }
+        }
+
+        texture.update(pixels.data());
+
+        /// Render
         window.clear();
+        window.draw(sprite);
         window.display();
     }
-
-    */
 
     return 0;
 }
