@@ -108,6 +108,7 @@ private:
 
 public:
     Rotation() {
+        std::cout << pi << std::endl;
         x = 0.0f;
         y = 0.0f;
         z = 0.0f;
@@ -181,6 +182,7 @@ int main() {
     std::cout << c << "\n";
     delete c;
     ////////////////////////////////////////////////////////////////////////
+
 
     /*
 
