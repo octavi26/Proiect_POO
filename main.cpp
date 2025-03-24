@@ -88,9 +88,9 @@ public:
 
     /// My functions
 
-    float Magnitude() {
-        return std::sqrt(x * x + y * y + z * z);
-    }
+    // float Magnitude() {
+    //     return std::sqrt(x * x + y * y + z * z);
+    // }
 
     float SquaredMagnitude() {
         return x * x + y * y + z * z;
