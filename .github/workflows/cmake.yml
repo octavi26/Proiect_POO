@@ -38,7 +38,7 @@ defaults:
     shell: bash
 
 jobs:
-  cppcheck:
+  cppcheck --check-level=exhaustive:
     name: "Cppcheck"
     # concurrency:
     #   group: "Cppcheck"
