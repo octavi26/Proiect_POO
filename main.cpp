@@ -483,7 +483,7 @@ public:
         return light.Value(point);
     }
 
-    float Value(int x, int y, Square shape, const Light& light) {
+    float Value(int x, int y, Square shape, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
@@ -491,8 +491,8 @@ public:
 
         for (int k = 0; k < samples; ++k)
             if (shape.Inside(ray.RayCast(k)))
-                return LightSeeking(ray.RayCast(k - 1), light, shape);
-
+                // return LightSeeking(ray.RayCast(k - 1), light, shape);
+                return light.Value(ray.RayCast(k - 1));
         return 0;
     }
 };
