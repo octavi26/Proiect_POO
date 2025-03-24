@@ -3,7 +3,6 @@
 #include <chrono>
 #include <vector>
 #include <thread>
-#include <omp.h>
 
 #include <SFML/Graphics.hpp>
 
