@@ -263,6 +263,7 @@ public:
         origin = other.origin;
         end = other.end;
         samples = other.samples;
+        return *this;
     }
 
     ~Ray() = default;
@@ -286,8 +287,8 @@ private:
     float fov;
     int columns, lines;
     float size;
-    float maxDistance;
     int samples;
+    float maxDistance;
 
 public:
     Camera()
