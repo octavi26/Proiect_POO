@@ -207,10 +207,6 @@ public:
     Vector3 Translate(Vector3 point) {
         return point.Move(position).Scale(scale).Rotate(rotation);
     }
-
-    bool Inside(Vector3 point) {
-        return point.SquaredMagnitude() != 0;
-    }
 };
 
 class Circle : public Shape {
