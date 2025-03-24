@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include <vector>
 #include <thread>
 
 #include <SFML/Graphics.hpp>
@@ -88,19 +89,19 @@ public:
 
     /// My functions
 
-    // float Magnitude() {
-    //     return std::sqrt(x * x + y * y + z * z);
-    // }
+    float Magnitude() {
+        return std::sqrt(x * x + y * y + z * z);
+    }
 
     float SquaredMagnitude() {
         return x * x + y * y + z * z;
     }
 
-    // Vector3 Normalize() {
-    //     float magnitude = Magnitude();
-    //     return Vector3(x / magnitude, y / magnitude, z / magnitude);
-    // }
-    //
+    Vector3 Normalize() {
+        float magnitude = Magnitude();
+        return Vector3(x / magnitude, y / magnitude, z / magnitude);
+    }
+
     // Vector3 Rad2Deg() {
     //     return Vector3(x * 180.0f / pi, y * 180.0f / pi, z * 180.0f / pi);
     // }
@@ -228,6 +229,134 @@ public:
     bool Inside(Vector3 point) {
         point = Translate(point);
         return point.SquaredMagnitude() <= 1;
+    }
+};
+
+class Ray {
+private:
+    Vector3 origin;
+    Vector3 end;
+    int samples;
+
+public:
+    Ray()
+        : origin(),
+          end(),
+          samples(32) {
+    }
+
+    Ray(const Vector3 &_origin, const Vector3 &_end, const int &_samples)
+        : origin(_origin),
+          end(_end),
+          samples(_samples) {
+    }
+
+    Ray(const Ray &other)
+        : origin(other.origin),
+          end(other.end),
+          samples(other.samples) {
+    }
+
+    Ray & operator=(const Ray &other) {
+        if (this == &other)
+            return *this;
+        origin = other.origin;
+        end = other.end;
+        samples = other.samples;
+    }
+
+    ~Ray() = default;
+
+    friend std::ostream& operator<<(std::ostream& os, const Ray& ray) {
+        os << "Origin: " << ray.origin << "\n"
+           << "End: " << ray.end << "\n"
+           << "Samples: " << ray.samples;
+        return os;
+    }
+
+    /// My functions
+    Vector3 RayCast(int k) {
+        return (end * k + origin * (samples - k)) / samples;
+    }
+};
+
+class Camera {
+private:
+    Vector3 position;
+    float fov;
+    int columns, lines;
+    float size;
+    float maxDistance;
+    int samples;
+
+public:
+    Camera()
+        : position(0, 0, -5),
+          fov(10.0f),
+          columns(16),
+          lines(9),
+          size(10.0f),
+          samples(32),
+          maxDistance(20.0f) {
+    }
+
+    Camera(const Vector3 &_position, float _fov, int _lines, float _size, int _columns, float _maxDistance, int _samples)
+        : position(_position),
+          fov(_fov),
+          columns(_columns),
+          lines(_lines),
+          size(_size),
+          samples(_samples),
+          maxDistance(_maxDistance) {
+    }
+
+    Camera(const Camera &other)
+        : position(other.position),
+          fov(other.fov),
+          columns(other.columns),
+          lines(other.lines),
+          size(other.size),
+          samples(other.samples),
+          maxDistance(other.maxDistance) {
+    }
+
+    Camera & operator=(const Camera &other) {
+        if (this == &other)
+            return *this;
+        position = other.position;
+        fov = other.fov;
+        columns = other.columns;
+        lines = other.lines;
+        size = other.size;
+        samples = other.samples;
+        maxDistance = other.maxDistance;
+        return *this;
+    }
+
+    ~Camera() = default;
+
+    friend std::ostream& operator<<(std::ostream& os, const Camera& camera) {
+        os << "Position: " << camera.position << "\n"
+           << "FOV: " << camera.fov << "\n"
+           << "Columns: " << camera.columns << "\n"
+           << "Lines: " << camera.lines << "\n"
+           << "Size: " << camera.size << "\n"
+           << "Samples: " << camera.samples << "\n"
+           << "Max distance: " << camera.maxDistance;
+        return os;
+    }
+
+    /// My functions
+    float Value(int x, int y, Circle shape) {
+        Vector3 startPosition = position;
+        Vector3 pixelPoint = position + Vector3(-size * columns / 2, -size * lines / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
+        Vector3 endPosition = (pixelPoint - position).Normalize() * maxDistance + startPosition;
+        Ray ray(startPosition, endPosition, samples);
+
+        for (int k = 0; k < samples; ++k) {
+            if (shape.Inside(ray.RayCast(k))) return 1;
+        }
+        return 0;
     }
 };
 
