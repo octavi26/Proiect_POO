@@ -390,10 +390,6 @@ public:
     }
 
     /// My Functions
-    Vector3 getPosition() {
-        return position;
-    }
-
     float Value(Vector3 point) {
         float light = power - (position - point).Magnitude();
         if (light > power) return 1;
