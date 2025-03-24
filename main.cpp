@@ -17,7 +17,7 @@
 
 //////////////////////////////////////////////////////////////////////
 ///            Sincer, impresionant de bine tinand                 ///
-///             cont ca am facut totul intr-o zi                   ///
+///             cont ca am facut totul intr-o zi.                  ///
 //////////////////////////////////////////////////////////////////////
 
 
