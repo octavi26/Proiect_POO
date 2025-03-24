@@ -209,7 +209,7 @@ public:
     }
 
     bool Inside(Vector3 point) {
-        return true;
+        return point.SquaredMagnitude() != 0;
     }
 };
 
