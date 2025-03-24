@@ -96,18 +96,18 @@ public:
         return x * x + y * y + z * z;
     }
 
-    Vector3 Normalize() {
-        float magnitude = Magnitude();
-        return Vector3(x / magnitude, y / magnitude, z / magnitude);
-    }
-
-    Vector3 Rad2Deg() {
-        return Vector3(x * 180.0f / pi, y * 180.0f / pi, z * 180.0f / pi);
-    }
-
-    Vector3 Deg2Rad() {
-        return Vector3(x * pi / 180.0f, y * pi / 180.0f, z * pi / 180.0f);
-    }
+    // Vector3 Normalize() {
+    //     float magnitude = Magnitude();
+    //     return Vector3(x / magnitude, y / magnitude, z / magnitude);
+    // }
+    //
+    // Vector3 Rad2Deg() {
+    //     return Vector3(x * 180.0f / pi, y * 180.0f / pi, z * 180.0f / pi);
+    // }
+    //
+    // Vector3 Deg2Rad() {
+    //     return Vector3(x * pi / 180.0f, y * pi / 180.0f, z * pi / 180.0f);
+    // }
 
     Vector3 RotateX(float angle) {
         angle = angle * pi / 180.0f;
@@ -167,10 +167,10 @@ private:
     Vector3 rotation;
 
 public:
-    Shape() {
-        position = Vector3();
-        scale = Vector3(1, 1, 1);
-        rotation = Vector3();
+    Shape()
+        : position(),
+          scale(1, 1, 1),
+          rotation() {
     }
 
     Shape(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
