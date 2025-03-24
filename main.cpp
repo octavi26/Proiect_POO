@@ -474,14 +474,14 @@ public:
         columns = _columns;
     }
 
-    float LightSeeking(Vector3 point, Light light, Square shape) {
-        Ray lightRay{point, light.getPosition(), samples};
-        for (int l = 0; l < samples; ++l)
-            if (shape.Inside(lightRay.RayCast(l)))
-                return 0;
-
-        return light.Value(point);
-    }
+    // float LightSeeking(Vector3 point, Light light, Square shape) {
+    //     Ray lightRay{point, light.getPosition(), samples};
+    //     for (int l = 0; l < samples; ++l)
+    //         if (shape.Inside(lightRay.RayCast(l)))
+    //             return 0;
+    //
+    //     return light.Value(point);
+    // }
 
     float Value(int x, int y, Square shape, Light light) {
         Vector3 startPosition = position;
