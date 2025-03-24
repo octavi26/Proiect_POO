@@ -110,10 +110,10 @@ public:
         return x * x + y * y + z * z;
     }
 
-    Vector3 Normalize() {
-        float magnitude = Magnitude();
-        return Vector3(x / magnitude, y / magnitude, z / magnitude);
-    }
+    // Vector3 Normalize() {
+    //     float magnitude = Magnitude();
+    //     return Vector3(x / magnitude, y / magnitude, z / magnitude);
+    // }
 
     // Vector3 Rad2Deg() {
     //     return Vector3(x * 180.0f / pi, y * 180.0f / pi, z * 180.0f / pi);
@@ -152,7 +152,9 @@ public:
 
     Vector3 Rotate( Vector3 rotation ) {
         Vector3 newRotation(x, y, z);
-        newRotation.RotateZ(-rotation.z).RotateY(-rotation.y).RotateX(-rotation.x);
+        newRotation.RotateZ(rotation.z);
+        newRotation.RotateY(rotation.y);
+        newRotation.RotateX(rotation.x);
         x = newRotation.x;
         y = newRotation.y;
         z = newRotation.z;
@@ -271,6 +273,37 @@ public:
     }
 };
 
+class Torus : public Shape {
+private:
+    float thickness;
+public:
+    Torus() : thickness(3){}
+    Torus(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation, const float &_thickness)
+        : Shape(_position, _scale, _rotation), thickness(_thickness) {
+    }
+    Torus(const Torus &other)
+        : Shape(other), thickness(other.thickness) {
+    }
+    Torus & operator=(const Torus &other) {
+        if (this == &other)
+            return *this;
+        Shape::operator=(other);
+        thickness = other.thickness;
+        return *this;
+    }
+
+    /// My Functions
+    bool Inside(Vector3 point) {
+        point = Translate(point);
+
+        Vector3 point2 = Vector3(point.GetX(), point.GetY(), 0);
+        float angle = atan2(point.GetY(), point.GetX());
+        Vector3 pointOnCircle = Vector3(cos(angle), sin(angle), 0);
+
+        return (point - pointOnCircle).Magnitude() <= thickness;
+    }
+};
+
 class Ray {
 private:
     Vector3 origin;
@@ -317,6 +350,56 @@ public:
     /// My functions
     Vector3 RayCast(int k) {
         return (end * k + origin * (samples - k)) / samples;
+    }
+};
+
+class Light {
+private:
+    Vector3 position;
+    float power;
+
+public:
+    Light()
+        : position(),
+          power(1) {
+    }
+
+    Light(const Vector3 &_position, const float &_power)
+        : position(_position),
+          power(_power) {
+    }
+
+    Light(const Light &other)
+        : position(other.position),
+          power(other.power) {
+    }
+
+    Light & operator=(const Light &other) {
+        if (this == &other)
+            return *this;
+        position = other.position;
+        power = other.power;
+        return *this;
+    }
+
+    ~Light() = default;
+
+    friend std::ostream& operator<<(std::ostream& os, const Light& light) {
+        os << "Position: " << light.position << "\n"
+           << "Power: " << light.power;
+        return os;
+    }
+
+    /// My Functions
+    Vector3 getPosition() {
+        return position;
+    }
+
+    float Value(Vector3 point) {
+        float light = power - (position - point).Magnitude();
+        if (light > power) return 1;
+        if (light < 0) return 0;
+        return light / power;
     }
 };
 
@@ -392,14 +475,22 @@ public:
         columns = _columns;
     }
 
-    float Value(int x, int y, Square shape) {
+    float Value(int x, int y, Square shape, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
         Ray ray(startPosition, endPosition, samples);
 
         for (int k = 0; k < samples; ++k) {
-            if (shape.Inside(ray.RayCast(k))) return 1;
+            if (shape.Inside(ray.RayCast(k))) {
+                Ray lightRay{ray.RayCast(k - 1), light.getPosition(), samples};
+                for (int l = 0; l < samples; ++l) {
+                    if (shape.Inside(lightRay.RayCast(l))) {
+                        return 0;
+                    }
+                }
+                return light.Value(ray.RayCast(k - 1));
+            }
         }
         return 0;
     }
@@ -415,15 +506,15 @@ int main() {
     delete c;
     ////////////////////////////////////////////////////////////////////////
 
-    int width = 500, height = 500;
-    Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 16};
-    camera.SetRatio(width, height);
-    sf::RenderWindow window;
-    ///////////////////////////////////////////////////////////////////////////
-    /// NOTE: sync with env variable APP_WINDOW from .github/workflows/cmake.yml:31
-    window.create(sf::VideoMode({static_cast<unsigned int>(width), static_cast<unsigned int>(height)}), "Render", sf::Style::Default);
-    ///////////////////////////////////////////////////////////////////////////
-    //
+    const int render_width = 128, render_height = 128;  // Low resolution render
+    const int window_width = 1024, window_height = 1024; // High-resolution window
+
+    Light light{Vector3(10, -10, -10), 19};
+    Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
+    camera.SetRatio(render_width, render_height);
+
+    sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Render", sf::Style::Default);
+
     ///////////////////////////////////////////////////////////////////////////
     /// NOTE: mandatory use one of vsync or FPS limit (not both)            ///
     /// This is needed so we do not burn the GPU                            ///
@@ -432,52 +523,98 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////
 
     sf::Texture texture;
-    texture.create(width, height);
-
+    texture.create(render_width, render_height);
     sf::Sprite sprite(texture);
 
-    std::vector<sf::Uint8> pixels(width * height * 4);
+    std::vector<sf::Uint8> pixels(render_width * render_height * 4); // RGBA buffer
 
-    while(window.isOpen()) {
+    /// Initial scaling and centering
+    float scaleX = static_cast<float>(window_width) / render_width;
+    float scaleY = static_cast<float>(window_height) / render_height;
+    float scale = std::min(scaleX, scaleY);
+
+    sprite.setScale(scale, scale);
+    sprite.setPosition(
+        (window_width - render_width * scale) / 2,
+        (window_height - render_height * scale) / 2
+    );
+
+    float angle = 0;
+    float step = 7.5;
+
+    while (window.isOpen()) {
         bool shouldExit = false;
         sf::Event e{};
-        while(window.pollEvent(e)) {
-            switch(e.type) {
+        while (window.pollEvent(e)) {
+            switch (e.type) {
             case sf::Event::Closed:
                 window.close();
                 break;
-            case sf::Event::Resized:
-                std::cout << "New width: " << window.getSize().x << '\n'
-                          << "New height: " << window.getSize().y << '\n';
+            case sf::Event::Resized: {  // Handle window resize
+                int new_width = e.size.width;
+                int new_height = e.size.height;
+
+                scaleX = static_cast<float>(new_width) / render_width;
+                scaleY = static_cast<float>(new_height) / render_height;
+                scale = std::min(scaleX, scaleY);
+
+                sprite.setScale(scale, scale);
+                sprite.setPosition(
+                    (new_width - render_width * scale) / 2,
+                    (new_height - render_height * scale) / 2
+                );
+
+                std::cout << "New width: " << new_width << ", New height: " << new_height << '\n';
                 break;
+            }
             case sf::Event::KeyPressed:
                 std::cout << "Received key " << (e.key.code == sf::Keyboard::X ? "X" : "(other)") << "\n";
-                if(e.key.code == sf::Keyboard::Escape)
+                if (e.key.code == sf::Keyboard::Escape)
                     shouldExit = true;
                 break;
             default:
                 break;
             }
         }
-        if(shouldExit) {
+        if (shouldExit) {
             window.close();
             break;
         }
+
         using namespace std::chrono_literals;
-        std::this_thread::sleep_for(300ms);
+        std::this_thread::sleep_for(10ms);
+        angle += step;
 
-        #pragma omp parallel for collapse(2)
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int k = (y * width + x) * 4;
-                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 2, Vector3(0, 0, 0)));
-
+        /// Calculating Light Levels
+        for (int y = 0; y < render_height; y++) {
+            for (int x = 0; x < render_width; x++) {
+                int index = (y * render_width + x) * 4; // RGBA index
+                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.6, Vector3(30, angle, 45)), light);
                 sf::Uint8 intensity = static_cast<sf::Uint8>(value * 255);
 
-                pixels[k] = intensity;
-                pixels[k + 1] = intensity;
-                pixels[k + 2] = intensity;
-                pixels[k + 3] = 255;
+                pixels[index] = intensity;
+                pixels[index + 1] = intensity;
+                pixels[index + 2] = intensity;
+                pixels[index + 3] = 255;
+            }
+        }
+
+        /// Adjusting the Contrast
+        sf::Uint8 min_intensity = 255, max_intensity = 0;
+        for (int i = 0; i < render_width * render_height * 4; i += 4) {
+            if (pixels[i] < min_intensity) min_intensity = pixels[i];
+            if (pixels[i] > max_intensity) max_intensity = pixels[i];
+        }
+
+        if (max_intensity > min_intensity) {
+            for (int i = 0; i < render_width * render_height * 4; i += 4) {
+                sf::Uint8 old_intensity = pixels[i];
+
+                sf::Uint8 new_intensity = static_cast<sf::Uint8>(
+                    ((old_intensity - min_intensity) / static_cast<float>(max_intensity - min_intensity)) * 255
+                );
+
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = new_intensity;
             }
         }
 
