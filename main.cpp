@@ -474,23 +474,25 @@ public:
         columns = _columns;
     }
 
+    float LightSeeking(Vector3 point, Light light, Square shape) {
+        Ray lightRay{point, light.getPosition(), samples};
+        for (int l = 0; l < samples; ++l)
+            if (shape.Inside(lightRay.RayCast(l)))
+                return 0;
+
+        return light.Value(point);
+    }
+
     float Value(int x, int y, Square shape, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
         Ray ray(startPosition, endPosition, samples);
 
-        for (int k = 0; k < samples; ++k) {
-            if (shape.Inside(ray.RayCast(k))) {
-                Ray lightRay{ray.RayCast(k - 1), light.getPosition(), samples};
-                for (int l = 0; l < samples; ++l) {
-                    if (shape.Inside(lightRay.RayCast(l))) {
-                        return 0;
-                    }
-                }
-                return light.Value(ray.RayCast(k - 1));
-            }
-        }
+        for (int k = 0; k < samples; ++k)
+            if (shape.Inside(ray.RayCast(k)))
+                return LightSeeking(ray.RayCast(k - 1), light, shape);
+
         return 0;
     }
 };
@@ -605,16 +607,14 @@ int main() {
             if (pixels[i] > max_intensity) max_intensity = pixels[i];
         }
 
-        if (max_intensity > min_intensity) {
-            for (int i = 0; i < render_width * render_height * 4; i += 4) {
-                sf::Uint8 old_intensity = pixels[i];
+        for (int i = 0; i < render_width * render_height * 4; i += 4) {
+            sf::Uint8 old_intensity = pixels[i];
 
-                sf::Uint8 new_intensity = static_cast<sf::Uint8>(
-                    ((old_intensity - min_intensity) / static_cast<float>(max_intensity - min_intensity)) * 255
-                );
+            sf::Uint8 new_intensity = static_cast<sf::Uint8>(
+                ((old_intensity - min_intensity) / static_cast<float>(max_intensity - min_intensity)) * 255
+            );
 
-                pixels[i] = pixels[i + 1] = pixels[i + 2] = new_intensity;
-            }
+            pixels[i] = pixels[i + 1] = pixels[i + 2] = new_intensity;
         }
 
         texture.update(pixels.data());
