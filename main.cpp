@@ -588,7 +588,7 @@ int main() {
         for (int y = 0; y < render_height; y++) {
             for (int x = 0; x < render_width; x++) {
                 int index = (y * render_width + x) * 4; // RGBA index
-                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.6, Vector3(30, angle, 45)), light);
+                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.6f, Vector3(30, angle, 45)), light);
                 sf::Uint8 intensity = static_cast<sf::Uint8>(value * 255);
 
                 pixels[index] = intensity;
