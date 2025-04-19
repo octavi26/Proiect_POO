@@ -3,6 +3,8 @@
 #include <chrono>
 #include <vector>
 #include <thread>
+#include <omp.h>
+#include <math.h>
 
 #include <SFML/Graphics.hpp>
 
@@ -110,7 +112,7 @@ public:
         return std::sqrt(x * x + y * y + z * z);
     }
 
-    float SquaredMagnitude() {
+    float CubedMagnitude() {
         return x * x + y * y + z * z;
     }
 
@@ -224,21 +226,27 @@ public:
     }
 
     /// My functions
+    virtual bool Inside(Vector3 point) = 0;
+
     Vector3 Translate(Vector3 point) {
         return point.Move(position).Scale(scale).Rotate(rotation);
     }
+
+    void Rotate(Vector3 rotate) {
+        rotation = rotation + rotate;
+    }
 };
 
-class Circle : public Shape {
+class Sphere : public Shape {
 public:
-    Circle(){}
-    Circle(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
+    Sphere(){}
+    Sphere(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
     }
-    Circle(const Circle &other)
+    Sphere(const Sphere &other)
         : Shape(other) {
     }
-    Circle & operator=(const Circle &other) {
+    Sphere & operator=(const Sphere &other) {
         if (this == &other)
             return *this;
         Shape::operator=(other);
@@ -246,22 +254,22 @@ public:
     }
 
     /// My Functions
-    bool Inside(Vector3 point) {
+    bool Inside(Vector3 point) override {
         point = Translate(point);
-        return point.SquaredMagnitude() <= 1;
+        return point.CubedMagnitude() <= 1;
     }
 };
 
-class Square : public Shape {
+class Cube : public Shape {
 public:
-    Square(){}
-    Square(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
+    Cube(){}
+    Cube(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
     }
-    Square(const Square &other)
+    Cube(const Cube &other)
         : Shape(other) {
     }
-    Square & operator=(const Square &other) {
+    Cube & operator=(const Cube &other) {
         if (this == &other)
             return *this;
         Shape::operator=(other);
@@ -269,11 +277,36 @@ public:
     }
 
     /// My Functions
-    bool Inside(Vector3 point) {
+    bool Inside(Vector3 point) override {
         point = Translate(point);
         return point.GetX() >= -1.0/2 && point.GetX() <= 1.0/2 &&
                point.GetY() >= -1.0/2 && point.GetY() <= 1.0/2 &&
                point.GetZ() >= -1.0/2 && point.GetZ() <= 1.0/2;
+    }
+};
+
+class Room : public Shape {
+public:
+    Room(){}
+    Room(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
+        : Shape(_position, _scale, _rotation) {
+    }
+    Room(const Room &other)
+        : Shape(other) {
+    }
+    Room & operator=(const Room &other) {
+        if (this == &other)
+            return *this;
+        Shape::operator=(other);
+        return *this;
+    }
+
+    /// My Functions
+    bool Inside(Vector3 point) override {
+        point = Translate(point);
+        return !(point.GetX() >= -1.0/2 && point.GetX() <= 1.0/2 &&
+               point.GetY() >= -1.0/2 && point.GetY() <= 1.0/2 &&
+               point.GetZ() >= -1.0/2 && point.GetZ() <= 1.0/2);
     }
 };
 
@@ -302,9 +335,9 @@ public:
 
         Vector3 point2 = Vector3(point.GetX(), point.GetY(), 0);
         float angle = atan2(point.GetY(), point.GetX());
-        Vector3 pointOnCircle = Vector3(cos(angle), sin(angle), 0);
+        Vector3 pointOnSphere = Vector3(cos(angle), sin(angle), 0);
 
-        return (point - pointOnCircle).Magnitude() <= thickness;
+        return (point - pointOnSphere).Magnitude() <= thickness;
     }
 };
 
@@ -475,7 +508,11 @@ public:
         columns = _columns;
     }
 
-    // float LightSeeking(Vector3 point, Light light, Square shape) {
+    void Move(Vector3 transform) {
+        position = position + transform;
+    }
+
+    // float LightSeeking(Vector3 point, Light light, Cube shape) {
     //     Ray lightRay{point, light.getPosition(), samples};
     //     for (int l = 0; l < samples; ++l)
     //         if (shape.Inside(lightRay.RayCast(l)))
@@ -484,21 +521,28 @@ public:
     //     return light.Value(point);
     // }
 
-    float Value(int x, int y, Square shape, Light light) {
+    float Value(int x, int y, std::vector<Shape*> shapes, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
         Ray ray(startPosition, endPosition, samples);
 
         for (int k = 0; k < samples; ++k)
-            if (shape.Inside(ray.RayCast(k)))
-                // return LightSeeking(ray.RayCast(k - 1), light, shape);
-                return light.Value(ray.RayCast(k - 1));
+            for(auto shape : shapes) {
+                if (shape->Inside(ray.RayCast(k)))
+                    // return LightSeeking(ray.RayCast(k - 1), light, shape);
+                        return light.Value(ray.RayCast(k - 1));
+                }
         return 0;
     }
 };
 
+const int render_width = 128 * 1.2, render_height = 128 * 1.2;  // Low resolution render
+const int window_width = 1024, window_height = 1024; // High-resolution window
+
+
 int main() {
+    omp_set_num_threads(omp_get_max_threads());
     ////////////////////////////////////////////////////////////////////////
     /// NOTE: this function call is needed for environment-specific fixes //
     init_threads();                                                       //
@@ -508,11 +552,18 @@ int main() {
     delete c;
     ////////////////////////////////////////////////////////////////////////
 
-    const int render_width = 128, render_height = 128;  // Low resolution render
-    const int window_width = 1024, window_height = 1024; // High-resolution window
-
-    Light light{Vector3(10, -10, -10), 19};
+    Light light{Vector3(1, -1, -1) * 10, 19};
     Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
+    std::vector<Shape*> shapes;
+    Shape* torus1 = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2);
+    Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
+    Shape* floor = new Cube(Vector3(0, 1.7, 0), Vector3(.75, 1, 20) * 1.0f, Vector3(0, 0, 0));
+    shapes.push_back(torus1);
+    shapes.push_back(cube);
+    shapes.push_back(floor);
+
+    Vector3 step(2, 7.5, -1);
+    Vector3 CameraStep(0, 0, .25);
     camera.SetRatio(render_width, render_height);
 
     sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Render", sf::Style::Default);
@@ -541,9 +592,6 @@ int main() {
         (window_height - render_height * scale) / 2
     );
 
-    float angle = 0;
-    float step = 7.5;
-
     while (window.isOpen()) {
         bool shouldExit = false;
         sf::Event e{};
@@ -570,9 +618,13 @@ int main() {
                 break;
             }
             case sf::Event::KeyPressed:
-                std::cout << "Received key " << (e.key.code == sf::Keyboard::X ? "X" : "(other)") << "\n";
+                // std::cout << "Received key " << (e.key.code == sf::Keyboard::X ? "X" : "(other)") << "\n";
                 if (e.key.code == sf::Keyboard::Escape)
                     shouldExit = true;
+                if (e.key.code == sf::Keyboard::W)
+                    camera.Move(CameraStep);
+                if (e.key.code == sf::Keyboard::S)
+                    camera.Move(CameraStep * -1);
                 break;
             default:
                 break;
@@ -584,14 +636,16 @@ int main() {
         }
 
         using namespace std::chrono_literals;
-        std::this_thread::sleep_for(10ms);
-        angle += step;
+        // std::this_thread::sleep_for(10ms);
+
+        shapes[1]->Rotate(step);
 
         /// Calculating Light Levels
+        #pragma omp parallel for collapse(2)
         for (int y = 0; y < render_height; y++) {
             for (int x = 0; x < render_width; x++) {
                 int index = (y * render_width + x) * 4; // RGBA index
-                float value = camera.Value(x, y, Square(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.6f, Vector3(30, angle, 45)), light);
+                float value = camera.Value(x, y, shapes, light);
                 sf::Uint8 intensity = static_cast<sf::Uint8>(value * 255);
 
                 pixels[index] = intensity;
