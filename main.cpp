@@ -544,7 +544,9 @@ const int window_width = 1024, window_height = 1024; // High-resolution window
 
 
 int main() {
+    #ifdef _OPENMP
     omp_set_num_threads(omp_get_max_threads());
+    #endif
     ////////////////////////////////////////////////////////////////////////
     /// NOTE: this function call is needed for environment-specific fixes //
     init_threads();                                                       //
