@@ -54,6 +54,23 @@ if(OpenMP_CXX_FOUND)
     message(STATUS "Found OpenMP")
 endif()
 
+if(OpenMP_FOUND)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_C)
+elseif(APPLE)
+    # Fallback: manually link if find_package(OpenMP) failed on macOS
+    target_compile_options(${PROJECT_NAME} PUBLIC -Xpreprocessor -fopenmp)
+    target_link_libraries(${PROJECT_NAME} PUBLIC omp)
+    target_include_directories(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/include)
+    link_directories(/opt/homebrew/opt/libomp/lib)
+endif()
+
+if(APPLE)
+    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
+    set(OpenMP_C_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
+    set(OpenMP_INCLUDE_DIR "/opt/homebrew/opt/libomp/include")
+endif()
+
 ###############################################################################
 # Include + Link
 
