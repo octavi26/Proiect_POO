@@ -49,26 +49,28 @@ include(cmake/CompilerFlags.cmake)
 ###############################################################################
 # OpenMP
 
-find_package(OpenMP REQUIRED)
-if(OpenMP_CXX_FOUND)
-    message(STATUS "Found OpenMP")
+find_package(OpenMP)
+
+# macOS-specific workaround for OpenMP
+if(APPLE)
+    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
+    set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+    set(OpenMP_C_LIB_NAMES "omp")
+    set(OpenMP_CXX_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
+    set(OpenMP_INCLUDE_DIR "/opt/homebrew/opt/libomp/include")
 endif()
 
-if(OpenMP_FOUND)
-    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_C)
+# Check if found and apply linking
+if(OpenMP_CXX_FOUND)
+    message(STATUS "Found OpenMP")
+    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 elseif(APPLE)
-    # Fallback: manually link if find_package(OpenMP) failed on macOS
+    message(WARNING "Falling back to manual OpenMP setup for macOS")
     target_compile_options(${PROJECT_NAME} PUBLIC -Xpreprocessor -fopenmp)
     target_link_libraries(${PROJECT_NAME} PUBLIC omp)
     target_include_directories(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/include)
     link_directories(/opt/homebrew/opt/libomp/lib)
-endif()
-
-if(APPLE)
-    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
-    set(OpenMP_C_LIB_NAMES "omp")
-    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
-    set(OpenMP_INCLUDE_DIR "/opt/homebrew/opt/libomp/include")
 endif()
 
 ###############################################################################
@@ -90,7 +92,6 @@ target_link_libraries(${PROJECT_NAME}
         sfml-window
         sfml-system
         Threads::Threads
-        OpenMP::OpenMP_CXX
 )
 
 if(UNIX AND NOT APPLE)
