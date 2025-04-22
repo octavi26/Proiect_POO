@@ -562,8 +562,8 @@ int main() {
     shapes.push_back(cube);
     shapes.push_back(floor);
 
-    Vector3 step(2, 7.5, -1);
-    Vector3 CameraStep(0, 0, .25);
+    Vector3 step = Vector3(2, 7.5, -1) * 1.5;
+    Vector3 CameraStep(0, 0, .15);
     camera.SetRatio(render_width, render_height);
 
     sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Render", sf::Style::Default);
@@ -638,6 +638,7 @@ int main() {
         using namespace std::chrono_literals;
         // std::this_thread::sleep_for(10ms);
 
+        shapes[0]->Rotate(step);
         shapes[1]->Rotate(step);
 
         /// Calculating Light Levels
