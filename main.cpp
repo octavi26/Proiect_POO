@@ -3,7 +3,9 @@
 #include <chrono>
 #include <vector>
 #include <thread>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <math.h>
 
 #include <SFML/Graphics.hpp>
@@ -642,6 +644,7 @@ int main() {
         shapes[1]->Rotate(step);
 
         /// Calculating Light Levels
+        #ifdef _OPENMP
         #pragma omp parallel for collapse(2)
         for (int y = 0; y < render_height; y++) {
             for (int x = 0; x < render_width; x++) {
@@ -655,6 +658,7 @@ int main() {
                 pixels[index + 3] = 255;
             }
         }
+        #endif
 
         /// Adjusting the Contrast
         sf::Uint8 min_intensity = 255, max_intensity = 0;
