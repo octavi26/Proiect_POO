@@ -68,9 +68,8 @@ if(OpenMP_CXX_FOUND)
 elseif(APPLE)
     message(WARNING "Falling back to manual OpenMP setup for macOS")
     target_compile_options(${PROJECT_NAME} PUBLIC -Xpreprocessor -fopenmp)
-    target_link_libraries(${PROJECT_NAME} PUBLIC omp)
+    target_link_libraries(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/lib/libomp.dylib)
     target_include_directories(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/include)
-    link_directories(/opt/homebrew/opt/libomp/lib)
 endif()
 
 ###############################################################################
