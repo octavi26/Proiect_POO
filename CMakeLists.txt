@@ -49,9 +49,10 @@ include(cmake/CompilerFlags.cmake)
 ###############################################################################
 # OpenMP
 
+# Try to find OpenMP
 find_package(OpenMP)
 
-# macOS-specific workaround for OpenMP
+# On macOS GitHub Actions, OpenMP needs manual setup
 if(APPLE)
     set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
     set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
@@ -59,18 +60,23 @@ if(APPLE)
     set(OpenMP_CXX_LIB_NAMES "omp")
     set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
     set(OpenMP_INCLUDE_DIR "/opt/homebrew/opt/libomp/include")
+    set(OpenMP_CXX_INCLUDE_DIRS "/opt/homebrew/opt/libomp/include")
+
+    # Force include the headers
+    target_include_directories(${PROJECT_NAME} PRIVATE /opt/homebrew/opt/libomp/include)
+
+    # Force link the library
+    target_link_libraries(${PROJECT_NAME} PRIVATE /opt/homebrew/opt/libomp/lib/libomp.dylib)
+
+    # Force compile flags
+    target_compile_options(${PROJECT_NAME} PRIVATE -Xpreprocessor -fopenmp)
+else()
+    if(OpenMP_CXX_FOUND)
+        message(STATUS "Found OpenMP")
+        target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+    endif()
 endif()
 
-# Check if found and apply linking
-if(OpenMP_CXX_FOUND)
-    message(STATUS "Found OpenMP")
-    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-elseif(APPLE)
-    message(WARNING "Falling back to manual OpenMP setup for macOS")
-    target_compile_options(${PROJECT_NAME} PUBLIC -Xpreprocessor -fopenmp)
-    target_link_libraries(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/lib/libomp.dylib)
-    target_include_directories(${PROJECT_NAME} PUBLIC /opt/homebrew/opt/libomp/include)
-endif()
 
 ###############################################################################
 # Include + Link
