@@ -42,6 +42,8 @@ add_executable(${PROJECT_NAME}
         main.cpp
         generated/src/Helper.cpp
         env_fixes.h
+        Vector3.h
+        Vector3.cpp
 )
 
 include(cmake/CompilerFlags.cmake)
