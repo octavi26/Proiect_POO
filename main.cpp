@@ -525,7 +525,7 @@ public:
     //     return light.Value(point);
     // }
 
-    float Value(int x, int y, std::vector<Shape*> const shapes, Light light) {
+    float Value(int x, int y, std::vector<Shape*> const &shapes, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
