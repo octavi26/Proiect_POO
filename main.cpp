@@ -561,12 +561,15 @@ int main() {
     Light light{Vector3(1, -1, -1) * 10, 19};
     Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
     std::vector<Shape*> shapes;
-    Shape* torus1 = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
+    Shape* torus = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
     Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
     Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(.75f, 1, 20) * 1.0f, Vector3(0, 0, 0));
-    shapes.push_back(torus1);
+    Shape* sphere = new Sphere();
+    shapes.push_back(torus);
     shapes.push_back(cube);
     shapes.push_back(floor);
+
+    Shape* torus2 = torus->clone(), *cube2 = cube->clone(), *floor2 = floor->clone(), *sphere2 = sphere->clone();
 
     std::cout << *shapes[0];
 
