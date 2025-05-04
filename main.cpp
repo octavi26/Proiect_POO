@@ -190,12 +190,21 @@ private:
     Vector3 scale;
     Vector3 rotation;
 
+protected:
+    virtual void afisare(std::ostream& os) const {
+        os << "Position: " << this->position << "\n"
+           << "Scale: " << this->scale << "\n"
+           << "Rotation: " << this->rotation;
+    }
+
 public:
     Shape()
         : position(),
           scale(1, 1, 1),
           rotation() {
     }
+
+    virtual Shape* clone() const = 0;
 
     Shape(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : position(_position),
@@ -221,9 +230,7 @@ public:
     ~Shape() = default;
 
     friend std::ostream& operator<<(std::ostream& os, const Shape& transform) {
-        os << "Position: " << transform.position << "\n"
-           << "Scale: " << transform.scale << "\n"
-           << "Rotation: " << transform.rotation;
+        transform.afisare(os);
         return os;
     }
 
@@ -240,8 +247,14 @@ public:
 };
 
 class Sphere : public Shape {
+protected:
+    void afisare(std::ostream& os) const override {
+        Shape::afisare(os);
+    }
+
 public:
     Sphere(){}
+    Shape* clone() const override { return new Sphere(*this); }
     Sphere(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
     }
@@ -263,11 +276,17 @@ public:
 };
 
 class Cube : public Shape {
+protected:
+    void afisare(std::ostream& os) const override {
+        Shape::afisare(os);
+    }
+
 public:
     Cube(){}
     Cube(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
     }
+    Shape* clone() const override { return new Cube(*this); }
     Cube(const Cube &other)
         : Shape(other) {
     }
@@ -287,36 +306,19 @@ public:
     }
 };
 
-class Room : public Shape {
-public:
-    Room(){}
-    Room(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
-        : Shape(_position, _scale, _rotation) {
-    }
-    Room(const Room &other)
-        : Shape(other) {
-    }
-    Room & operator=(const Room &other) {
-        if (this == &other)
-            return *this;
-        Shape::operator=(other);
-        return *this;
-    }
-
-    /// My Functions
-    bool Inside(Vector3 point) override {
-        point = Translate(point);
-        return !(point.GetX() >= -1.0/2 && point.GetX() <= 1.0/2 &&
-               point.GetY() >= -1.0/2 && point.GetY() <= 1.0/2 &&
-               point.GetZ() >= -1.0/2 && point.GetZ() <= 1.0/2);
-    }
-};
-
 class Torus : public Shape {
 private:
     float thickness;
+
+protected:
+    void afisare(std::ostream& os) const override {
+        Shape::afisare(os);
+        os << "\nThickness: " << thickness << "\n";
+    }
+
 public:
     Torus() : thickness(3){}
+    Shape* clone() const override { return new Torus(*this); }
     Torus(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation, const float &_thickness)
         : Shape(_position, _scale, _rotation), thickness(_thickness) {
     }
@@ -566,6 +568,8 @@ int main() {
     shapes.push_back(cube);
     shapes.push_back(floor);
 
+    std::cout << *shapes[0];
+
     Vector3 step = Vector3(2, 7.5, -1) * 1.5;
     Vector3 CameraStep(0, 0, .15);
     camera.SetRatio(render_width, render_height);
@@ -643,7 +647,7 @@ int main() {
         // std::this_thread::sleep_for(10ms);
 
         shapes[0]->Rotate(step);
-        shapes[1]->Rotate(step);
+        shapes[1]->Rotate(step * -1.7);
 
         /// Calculating Light Levels
         #ifdef _OPENMP

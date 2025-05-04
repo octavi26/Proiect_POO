@@ -80,6 +80,12 @@ target_link_libraries(${PROJECT_NAME}
         Threads::Threads
 )
 
+# Suppress MSVC warning about unsupported OpenMP collapse clause
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /wd4849)
+endif()
+
+
 if(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE X11)
 endif()
