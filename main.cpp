@@ -525,7 +525,7 @@ public:
     //     return light.Value(point);
     // }
 
-    float Value(int x, int y, std::vector<Shape*> shapes, Light light) {
+    float Value(int x, int y, std::vector<Shape*> const shapes, Light light) {
         Vector3 startPosition = position;
         Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
         // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
@@ -564,12 +564,15 @@ int main() {
     Shape* torus = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
     Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
     Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(.75f, 1, 20) * 1.0f, Vector3(0, 0, 0));
-    Shape* sphere = new Sphere();
-    shapes.push_back(torus);
-    shapes.push_back(cube);
-    shapes.push_back(floor);
+    Shape* sphere = new Sphere(Vector3(0, 0, 0), Vector3(1, 1, 1) * .75f, Vector3(45, 45, 45));
 
     Shape* torus2 = torus->clone(), *cube2 = cube->clone(), *floor2 = floor->clone(), *sphere2 = sphere->clone();
+
+    shapes.push_back(torus2);
+    shapes.push_back(cube2);
+    shapes.push_back(floor2);
+    shapes.push_back(sphere2);
+
 
     std::cout << *shapes[0];
 
