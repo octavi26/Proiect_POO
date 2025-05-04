@@ -334,7 +334,7 @@ public:
     }
 
     /// My Functions
-    bool Inside(Vector3 point) {
+    bool Inside(Vector3 point) override{
         point = Translate(point);
 
         Vector3 point2 = Vector3(point.GetX(), point.GetY(), 0);
@@ -561,17 +561,17 @@ int main() {
     Light light{Vector3(1, -1, -1) * 10, 19};
     Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
     std::vector<Shape*> shapes;
-    Shape* torus1 = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2);
+    Shape* torus1 = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
     Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
-    Shape* floor = new Cube(Vector3(0, 1.7, 0), Vector3(.75, 1, 20) * 1.0f, Vector3(0, 0, 0));
+    Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(.75f, 1, 20) * 1.0f, Vector3(0, 0, 0));
     shapes.push_back(torus1);
     shapes.push_back(cube);
     shapes.push_back(floor);
 
     std::cout << *shapes[0];
 
-    Vector3 step = Vector3(2, 7.5, -1) * 1.5;
-    Vector3 CameraStep(0, 0, .15);
+    Vector3 step = Vector3(2, 7.5f, -1) * 1.5f;
+    Vector3 CameraStep(0, 0, .15f);
     camera.SetRatio(render_width, render_height);
 
     sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Render", sf::Style::Default);
@@ -647,7 +647,7 @@ int main() {
         // std::this_thread::sleep_for(10ms);
 
         shapes[0]->Rotate(step);
-        shapes[1]->Rotate(step * -1.7);
+        shapes[1]->Rotate(step * -1.7f);
 
         /// Calculating Light Levels
         #ifdef _OPENMP
