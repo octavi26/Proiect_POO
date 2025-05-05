@@ -18,6 +18,7 @@
 #include <complex>
 
 #include "env_fixes.h"                                              //
+#include "exceptions.hpp"
 //////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////
@@ -39,7 +40,7 @@ SomeClass *getC() {
 //////////////////////////////////////////////////////////////////////
 
 class Shape {
-private:
+protected:
     Vector3 position;
     Vector3 scale;
     Vector3 rotation;
@@ -111,6 +112,8 @@ public:
     Shape* clone() const override { return new Sphere(*this); }
     Sphere(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
         : Shape(_position, _scale, _rotation) {
+        if (scale.Magnitude() <= 0)
+            throw ShapeConstructionException("Sphere radius must be positive.");
     }
     Sphere(const Sphere &other)
         : Shape(other) {
@@ -216,6 +219,8 @@ public:
         : origin(_origin),
           end(_end),
           samples(_samples) {
+        if (_samples <= 0)
+            throw RayMarchingException("Ray samples must be positive.");
     }
 
     Ray(const Ray &other)
@@ -292,6 +297,10 @@ public:
         if (light < 0) return 0;
         return light / power;
     }
+    //
+    // Vector3 getPosition() {
+    //     return position;
+    // }
 };
 
 class Camera {
@@ -322,6 +331,10 @@ public:
           size(_size),
           samples(_samples),
           maxDistance(_maxDistance) {
+        if (_columns <= 0 || _lines <= 0 || _size <= 0)
+            throw CameraConfigurationException("Invalid camera dimensions or size.");
+        if (_samples <= 0)
+            throw RayMarchingException("Ray samples must be positive.");
     }
 
     Camera(const Camera &other)
@@ -370,11 +383,13 @@ public:
         position = position + transform;
     }
 
-    // float LightSeeking(Vector3 point, Light light, Cube shape) {
-    //     Ray lightRay{point, light.getPosition(), samples};
-    //     for (int l = 0; l < samples; ++l)
-    //         if (shape.Inside(lightRay.RayCast(l)))
-    //             return 0;
+    // float LightSeeking(Vector3 point, Light light, std::vector<Shape*> const &shapes) {
+    //     Ray ray{point, light.getPosition(), samples};
+    //     for (int k = 0; k < samples; ++k)
+    //         for(auto shape : shapes) {
+    //             if (shape->Inside(ray.RayCast(k)))
+    //                 return 0;
+    //         }
     //
     //     return light.Value(point);
     // }
@@ -388,9 +403,10 @@ public:
         for (int k = 0; k < samples; ++k)
             for(auto shape : shapes) {
                 if (shape->Inside(ray.RayCast(k)))
-                    // return LightSeeking(ray.RayCast(k - 1), light, shape);
-                        return light.Value(ray.RayCast(k - 1));
-                }
+                    // return LightSeeking(ray.RayCast(k - 1), light, shapes);
+                    return light.Value(ray.RayCast(k - 1));
+            }
+
         return 0;
     }
 };
@@ -412,27 +428,36 @@ int main() {
     delete c;
     ////////////////////////////////////////////////////////////////////////
 
-    Light light{Vector3(1, -1, -1) * 10, 19};
-    Camera camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
+    Camera camera;
+    Light light;
     std::vector<Shape*> shapes;
-    Shape* torus = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
-    Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
-    Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(.75f, 1, 20) * 1.0f, Vector3(0, 0, 0));
-    Shape* sphere = new Sphere(Vector3(0, 0, 0), Vector3(1, 1, 1) * .75f, Vector3(45, 45, 45));
+    try {
+        camera = Camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
+        camera.SetRatio(render_width, render_height);
 
-    Shape* torus2 = torus->clone(), *cube2 = cube->clone(), *floor2 = floor->clone(), *sphere2 = sphere->clone();
+        light = Light{Vector3(1, -1, -1) * 10, 19};
 
-    shapes.push_back(torus2);
-    shapes.push_back(cube2);
-    shapes.push_back(floor2);
-    shapes.push_back(sphere2);
+        Shape* torus = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
+        Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
+        Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(1, 1, 100) * 1.0f, Vector3(0, 0, 0));
+        Shape* sphere = new Sphere(Vector3(0, 0, 0), Vector3(1, 1, 1) * .75f, Vector3(45, 45, 45));
 
+        Shape* torus2 = torus->clone(), *cube2 = cube->clone(), *floor2 = floor->clone(), *sphere2 = sphere->clone();
+
+        shapes.push_back(torus2);
+        shapes.push_back(cube2);
+        shapes.push_back(floor2);
+        shapes.push_back(sphere2);
+    } catch (const CameraConfigurationException& e) {
+        std::cerr << "Config error: " << e.what() << '\n';
+    } catch (const RenderException& e) {
+        std::cerr << "Render error: " << e.what() << '\n';
+    }
 
     std::cout << *shapes[0];
 
     Vector3 step = Vector3(2, 7.5f, -1) * 1.5f;
     Vector3 CameraStep(0, 0, .15f);
-    camera.SetRatio(render_width, render_height);
 
     sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Render", sf::Style::Default);
 
@@ -506,7 +531,13 @@ int main() {
         using namespace std::chrono_literals;
         // std::this_thread::sleep_for(10ms);
 
-        shapes[0]->Rotate(step);
+        for (auto shape : shapes) {
+            // Rotate all toruses
+            Torus* tor = dynamic_cast<Torus*>(shape);
+            if (tor) {
+                tor->Rotate(step);
+            }
+        }
         shapes[1]->Rotate(step * -1.7f);
 
         /// Calculating Light Levels
@@ -536,11 +567,15 @@ int main() {
         for (int i = 0; i < render_width * render_height * 4; i += 4) {
             sf::Uint8 old_intensity = pixels[i];
 
+            if (old_intensity == 0) continue;
+
             sf::Uint8 new_intensity = static_cast<sf::Uint8>(
                 ((old_intensity - min_intensity) / static_cast<float>(max_intensity - min_intensity)) * 255
             );
 
+            // pixels[i] = pixels[i + 1] = pixels[i + 2] = sin(new_intensity * 255 / 255) * 128 + 128;
             pixels[i] = pixels[i + 1] = pixels[i + 2] = new_intensity;
+            pixels[i + 3] = 255;
         }
 
         texture.update(pixels.data());
