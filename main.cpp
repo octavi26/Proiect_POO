@@ -431,7 +431,7 @@ int main() {
     Camera camera;
     Light light;
     std::vector<Shape*> shapes;
-    // try {
+    try {
         camera = Camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
         camera.SetRatio(render_width, render_height);
 
@@ -448,11 +448,11 @@ int main() {
         shapes.push_back(cube2);
         shapes.push_back(floor2);
         shapes.push_back(sphere2);
-    // } catch (const CameraConfigurationException& e) {
-    //     std::cerr << "Config error: " << e.what() << '\n';
-    // } catch (const RenderException& e) {
-    //     std::cerr << "Render error: " << e.what() << '\n';
-    // }
+    } catch (const CameraConfigurationException& e) {
+        std::cerr << "Config error: " << e.what() << '\n';
+    } catch (const RenderException& e) {
+        std::cerr << "Render error: " << e.what() << '\n';
+    }
 
     std::cout << *shapes[0];
 
