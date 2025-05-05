@@ -43,9 +43,9 @@ Mai precis, obiectul camera reprezinta un punct in spatiu si un plan direct in f
     - [X] suprascris cc/op= pentru copieri/atribuiri corecte, copy and swap
     - [X] `dynamic_cast`/`std::dynamic_pointer_cast` pentru downcast cu sens
     - [ ] smart pointers (recomandat, opțional)
-- [ ] excepții
-  - [ ] ierarhie proprie cu baza `std::exception` sau derivată din `std::exception`; minim **3** clase pentru erori specifice
-  - [ ] utilizare cu sens: de exemplu, `throw` în constructor (sau funcție care întoarce un obiect), `try`/`catch` în `main`
+- [X] excepții
+  - [X] ierarhie proprie cu baza `std::exception` sau derivată din `std::exception`; minim **3** clase pentru erori specifice
+  - [X] utilizare cu sens: de exemplu, `throw` în constructor (sau funcție care întoarce un obiect), `try`/`catch` în `main`
   - această ierarhie va fi complet independentă de ierarhia cu funcții virtuale
 - [X] funcții și atribute `static`
 - [X] STL
