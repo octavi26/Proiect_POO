@@ -38,9 +38,9 @@ Vector3 Vector3::operator/(const float& other) const {
     return Vector3(x / other, y / other, z / other);
 }
 
-float Vector3::GetX() { return x; }
-float Vector3::GetY() { return y; }
-float Vector3::GetZ() { return z; }
+float Vector3::GetX() const { return x; }
+float Vector3::GetY() const { return y; }
+float Vector3::GetZ() const { return z; }
 
 float Vector3::Magnitude() {
     return std::sqrt(x * x + y * y + z * z);

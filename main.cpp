@@ -11,6 +11,13 @@
 #include <SFML/Graphics.hpp>
 
 #include "Vector3.h"
+#include "Ray.h"
+#include "Camera.h"
+#include "Shape.h"
+#include "Sphere.h"
+#include "Cube.h"
+#include "Torus.h"
+#include "BoundingBox.h"
 //////////////////////////////////////////////////////////////////////
 /// NOTE: this include is needed for environment-specific fixes     //
 /// You can remove this include and the call from main              //
@@ -39,378 +46,6 @@ SomeClass *getC() {
 }
 //////////////////////////////////////////////////////////////////////
 
-class Shape {
-protected:
-    Vector3 position;
-    Vector3 scale;
-    Vector3 rotation;
-
-protected:
-    virtual void afisare(std::ostream& os) const {
-        os << "Position: " << this->position << "\n"
-           << "Scale: " << this->scale << "\n"
-           << "Rotation: " << this->rotation;
-    }
-
-public:
-    Shape()
-        : position(),
-          scale(1, 1, 1),
-          rotation() {
-    }
-
-    virtual Shape* clone() const = 0;
-
-    Shape(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
-        : position(_position),
-          scale(_scale),
-          rotation(_rotation) {
-    }
-
-    Shape(const Shape &other)
-        : position(other.position),
-          scale(other.scale),
-          rotation(other.rotation) {
-    }
-
-    Shape & operator=(const Shape &other) {
-        if (this == &other)
-            return *this;
-        position = other.position;
-        scale = other.scale;
-        rotation = other.rotation;
-        return *this;
-    }
-
-    ~Shape() = default;
-
-    friend std::ostream& operator<<(std::ostream& os, const Shape& transform) {
-        transform.afisare(os);
-        return os;
-    }
-
-    /// My functions
-    virtual bool Inside(Vector3 point) = 0;
-
-    Vector3 Translate(Vector3 point) {
-        return point.Move(position).Scale(scale).Rotate(rotation);
-    }
-
-    void Rotate(Vector3 rotate) {
-        rotation = rotation + rotate;
-    }
-};
-
-class Sphere : public Shape {
-protected:
-    void afisare(std::ostream& os) const override {
-        Shape::afisare(os);
-    }
-
-public:
-    Sphere(){}
-    Shape* clone() const override { return new Sphere(*this); }
-    Sphere(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
-        : Shape(_position, _scale, _rotation) {
-        if (scale.Magnitude() <= 0)
-            throw ShapeConstructionException("Sphere radius must be positive.");
-    }
-    Sphere(const Sphere &other)
-        : Shape(other) {
-    }
-    Sphere & operator=(const Sphere &other) {
-        if (this == &other)
-            return *this;
-        Shape::operator=(other);
-        return *this;
-    }
-
-    /// My Functions
-    bool Inside(Vector3 point) override {
-        point = Translate(point);
-        return point.CubedMagnitude() <= 1;
-    }
-};
-
-class Cube : public Shape {
-protected:
-    void afisare(std::ostream& os) const override {
-        Shape::afisare(os);
-    }
-
-public:
-    Cube(){}
-    Cube(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation)
-        : Shape(_position, _scale, _rotation) {
-    }
-    Shape* clone() const override { return new Cube(*this); }
-    Cube(const Cube &other)
-        : Shape(other) {
-    }
-    Cube & operator=(const Cube &other) {
-        if (this == &other)
-            return *this;
-        Shape::operator=(other);
-        return *this;
-    }
-
-    /// My Functions
-    bool Inside(Vector3 point) override {
-        point = Translate(point);
-        return point.GetX() >= -1.0/2 && point.GetX() <= 1.0/2 &&
-               point.GetY() >= -1.0/2 && point.GetY() <= 1.0/2 &&
-               point.GetZ() >= -1.0/2 && point.GetZ() <= 1.0/2;
-    }
-};
-
-class Torus : public Shape {
-private:
-    float thickness;
-
-protected:
-    void afisare(std::ostream& os) const override {
-        Shape::afisare(os);
-        os << "\nThickness: " << thickness << "\n";
-    }
-
-public:
-    Torus() : thickness(3){}
-    Shape* clone() const override { return new Torus(*this); }
-    Torus(const Vector3 &_position, const Vector3 &_scale, const Vector3 &_rotation, const float &_thickness)
-        : Shape(_position, _scale, _rotation), thickness(_thickness) {
-    }
-    Torus(const Torus &other)
-        : Shape(other), thickness(other.thickness) {
-    }
-    Torus & operator=(const Torus &other) {
-        if (this == &other)
-            return *this;
-        Shape::operator=(other);
-        thickness = other.thickness;
-        return *this;
-    }
-
-    /// My Functions
-    bool Inside(Vector3 point) override{
-        point = Translate(point);
-
-        Vector3 point2 = Vector3(point.GetX(), point.GetY(), 0);
-        float angle = atan2(point.GetY(), point.GetX());
-        Vector3 pointOnSphere = Vector3(cos(angle), sin(angle), 0);
-
-        return (point - pointOnSphere).Magnitude() <= thickness;
-    }
-};
-
-class Ray {
-private:
-    Vector3 origin;
-    Vector3 end;
-    int samples;
-
-public:
-    Ray()
-        : origin(),
-          end(),
-          samples(32) {
-    }
-
-    Ray(const Vector3 &_origin, const Vector3 &_end, const int &_samples)
-        : origin(_origin),
-          end(_end),
-          samples(_samples) {
-        if (_samples <= 0)
-            throw RayMarchingException("Ray samples must be positive.");
-    }
-
-    Ray(const Ray &other)
-        : origin(other.origin),
-          end(other.end),
-          samples(other.samples) {
-    }
-
-    Ray & operator=(const Ray &other) {
-        if (this == &other)
-            return *this;
-        origin = other.origin;
-        end = other.end;
-        samples = other.samples;
-        return *this;
-    }
-
-    ~Ray() = default;
-
-    friend std::ostream& operator<<(std::ostream& os, const Ray& ray) {
-        os << "Origin: " << ray.origin << "\n"
-           << "End: " << ray.end << "\n"
-           << "Samples: " << ray.samples;
-        return os;
-    }
-
-    /// My functions
-    Vector3 RayCast(int k) {
-        return (end * k + origin * (samples - k)) / samples;
-    }
-};
-
-class Light {
-private:
-    Vector3 position;
-    float power;
-
-public:
-    Light()
-        : position(),
-          power(1) {
-    }
-
-    Light(const Vector3 &_position, const float &_power)
-        : position(_position),
-          power(_power) {
-    }
-
-    Light(const Light &other)
-        : position(other.position),
-          power(other.power) {
-    }
-
-    Light & operator=(const Light &other) {
-        if (this == &other)
-            return *this;
-        position = other.position;
-        power = other.power;
-        return *this;
-    }
-
-    ~Light() = default;
-
-    friend std::ostream& operator<<(std::ostream& os, const Light& light) {
-        os << "Position: " << light.position << "\n"
-           << "Power: " << light.power;
-        return os;
-    }
-
-    /// My Functions
-    float Value(Vector3 point) {
-        float light = power - (position - point).Magnitude();
-        if (light > power) return 1;
-        if (light < 0) return 0;
-        return light / power;
-    }
-    //
-    // Vector3 getPosition() {
-    //     return position;
-    // }
-};
-
-class Camera {
-private:
-    Vector3 position;
-    float fov;
-    int columns, lines;
-    float size;
-    int samples;
-    float maxDistance;
-
-public:
-    Camera()
-        : position(0, 0, -5),
-          fov(10.0f),
-          columns(16),
-          lines(9),
-          size(10.0f),
-          samples(32),
-          maxDistance(20.0f) {
-    }
-
-    Camera(const Vector3 &_position, float _fov, int _lines, float _size, int _columns, float _maxDistance, int _samples)
-        : position(_position),
-          fov(_fov),
-          columns(_columns),
-          lines(_lines),
-          size(_size),
-          samples(_samples),
-          maxDistance(_maxDistance) {
-        if (_columns <= 0 || _lines <= 0 || _size <= 0)
-            throw CameraConfigurationException("Invalid camera dimensions or size.");
-        if (_samples <= 0)
-            throw RayMarchingException("Ray samples must be positive.");
-    }
-
-    Camera(const Camera &other)
-        : position(other.position),
-          fov(other.fov),
-          columns(other.columns),
-          lines(other.lines),
-          size(other.size),
-          samples(other.samples),
-          maxDistance(other.maxDistance) {
-    }
-
-    Camera & operator=(const Camera &other) {
-        if (this == &other)
-            return *this;
-        position = other.position;
-        fov = other.fov;
-        columns = other.columns;
-        lines = other.lines;
-        size = other.size;
-        samples = other.samples;
-        maxDistance = other.maxDistance;
-        return *this;
-    }
-
-    ~Camera() = default;
-
-    friend std::ostream& operator<<(std::ostream& os, const Camera& camera) {
-        os << "Position: " << camera.position << "\n"
-           << "FOV: " << camera.fov << "\n"
-           << "Columns: " << camera.columns << "\n"
-           << "Lines: " << camera.lines << "\n"
-           << "Size: " << camera.size << "\n"
-           << "Samples: " << camera.samples << "\n"
-           << "Max distance: " << camera.maxDistance;
-        return os;
-    }
-
-    /// My functions
-    void SetRatio(int _columns, int _lines) {
-        lines = _lines;
-        columns = _columns;
-    }
-
-    void Move(Vector3 transform) {
-        position = position + transform;
-    }
-
-    // float LightSeeking(Vector3 point, Light light, std::vector<Shape*> const &shapes) {
-    //     Ray ray{point, light.getPosition(), samples};
-    //     for (int k = 0; k < samples; ++k)
-    //         for(auto shape : shapes) {
-    //             if (shape->Inside(ray.RayCast(k)))
-    //                 return 0;
-    //         }
-    //
-    //     return light.Value(point);
-    // }
-
-    float Value(int x, int y, std::vector<Shape*> const &shapes, Light light) {
-        Vector3 startPosition = position;
-        Vector3 endPosition = position + Vector3(-size / 2, -size * lines / columns / 2, fov) + Vector3(size * x / columns, size * y / lines, 0);
-        // endPosition = (endPosition - position).Normalize() * maxDistance + startPosition;
-        Ray ray(startPosition, endPosition, samples);
-
-        for (int k = 0; k < samples; ++k)
-            for(auto shape : shapes) {
-                if (shape->Inside(ray.RayCast(k)))
-                    // return LightSeeking(ray.RayCast(k - 1), light, shapes);
-                    return light.Value(ray.RayCast(k - 1));
-            }
-
-        return 0;
-    }
-};
-
 const int render_width = 128 * 1.2, render_height = 128 * 1.2;  // Low resolution render
 const int window_width = 1024, window_height = 1024; // High-resolution window
 
@@ -430,24 +65,35 @@ int main() {
 
     Camera camera;
     Light light;
-    std::vector<Shape*> shapes;
+    std::vector<std::shared_ptr<Shape>> shapes;
     try {
         camera = Camera{Vector3{0, 0, -5}, 10.0f, 9, 16.0f, 16, 20.0f, 128};
         camera.SetRatio(render_width, render_height);
 
         light = Light{Vector3(1, -1, -1) * 10, 19};
 
-        Shape* torus = new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f);
-        Shape* cube = new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45));
-        Shape* floor = new Cube(Vector3(0, 1.7f, 0), Vector3(1, 1, 100) * 1.0f, Vector3(0, 0, 0));
-        Shape* sphere = new Sphere(Vector3(0, 0, 0), Vector3(1, 1, 1) * .75f, Vector3(45, 45, 45));
+        std::shared_ptr<Shape> torus1(new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(30, 0, 45), .2f));
+        std::shared_ptr<Shape> torus2(new Torus(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.9f, Vector3(60, 0, 90), .2f));
 
-        Shape* torus2 = torus->clone(), *cube2 = cube->clone(), *floor2 = floor->clone(), *sphere2 = sphere->clone();
+        std::shared_ptr<CompositeShape> compositeTorus(new CompositeShape());
+        compositeTorus->addChild(torus1);
+        compositeTorus->addChild(torus2);
 
-        shapes.push_back(torus2);
+        std::shared_ptr<Shape> cube(new Cube(Vector3(0, 0, 0), Vector3(1, 1, 1) * 1.2f, Vector3(45, 45, 45)));
+        std::shared_ptr<Shape> floor(new Cube(Vector3(0, 1.7f, 0), Vector3(100, 1, 100) * 1.0f, Vector3(0, 0, 0)));
+        std::shared_ptr<Shape> sphere(new Sphere(Vector3(0, 0, 0), Vector3(1, 1, 1) * .75f, Vector3(45, 45, 45)));
+
+        std::shared_ptr<Shape> compositeTorus2 = compositeTorus->clone(), cube2 = cube->clone(), floor2 = floor->clone(), sphere2 = sphere->clone();
+
+        shapes.push_back(compositeTorus2);
         shapes.push_back(cube2);
         shapes.push_back(floor2);
         shapes.push_back(sphere2);
+
+        BoundingBox<Sphere> bb_sphere(dynamic_cast<const Sphere &>(*sphere), Vector3(-1, -1, -1), Vector3(1, 1, 1));
+        BoundingBox<Cube> bb_cube(dynamic_cast<const Cube &>(*cube), Vector3(-1, -1, -1), Vector3(1, 1, 1));
+
+        Vector3 point(0.5, 0.2, 0.1);
     } catch (const CameraConfigurationException& e) {
         std::cerr << "Config error: " << e.what() << '\n';
     } catch (const RenderException& e) {
@@ -533,11 +179,12 @@ int main() {
 
         for (auto shape : shapes) {
             // Rotate all toruses
-            Torus* tor = dynamic_cast<Torus*>(shape);
+            std::shared_ptr<Torus> tor = std::dynamic_pointer_cast<Torus>(shape);
             if (tor) {
                 tor->Rotate(step);
             }
         }
+        shapes[0]->Rotate(step * 1.0f);
         shapes[1]->Rotate(step * -1.7f);
 
         /// Calculating Light Levels

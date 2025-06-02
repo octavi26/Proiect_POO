@@ -11,7 +11,7 @@
 #include <cmath>
 
 class Vector3 {
-private:
+protected:
     float x;
     float y;
     float z;
@@ -31,9 +31,9 @@ public:
     Vector3 operator*(const float& other) const;
     Vector3 operator/(const float& other) const;
 
-    float GetX();
-    float GetY();
-    float GetZ();
+    float GetX() const;
+    float GetY() const;
+    float GetZ() const;
     float Magnitude();
     float CubedMagnitude();
 

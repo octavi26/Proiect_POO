@@ -44,6 +44,22 @@ add_executable(${PROJECT_NAME}
         env_fixes.h
         Vector3.h
         Vector3.cpp
+        Camera.cpp
+        Camera.h
+        Light.cpp
+        Light.h
+        Ray.cpp
+        Ray.h
+        Shape.cpp
+        Shape.h
+        Sphere.cpp
+        Sphere.h
+        Cube.cpp
+        Cube.h
+        Torus.cpp
+        Torus.h
+        BoundingBox.cpp
+        BoundingBox.h
 )
 
 include(cmake/CompilerFlags.cmake)
