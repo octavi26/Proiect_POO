@@ -46,7 +46,7 @@ public:
     CompositeShape();
     CompositeShape(const CompositeShape& other);
     CompositeShape& operator=(const CompositeShape& other);
-    ~CompositeShape() = default;
+    ~CompositeShape() override = default;
 
     void addChild(std::shared_ptr<Shape> shape);
     std::shared_ptr<Shape> clone() const override;

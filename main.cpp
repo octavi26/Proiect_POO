@@ -93,7 +93,7 @@ int main() {
         BoundingBox<Sphere> bb_sphere(dynamic_cast<const Sphere &>(*sphere), Vector3(-1, -1, -1), Vector3(1, 1, 1));
         BoundingBox<Cube> bb_cube(dynamic_cast<const Cube &>(*cube), Vector3(-1, -1, -1), Vector3(1, 1, 1));
 
-        Vector3 point(0.5, 0.2, 0.1);
+        Vector3 point(0.5f, 0.2f, 0.1f);
     } catch (const CameraConfigurationException& e) {
         std::cerr << "Config error: " << e.what() << '\n';
     } catch (const RenderException& e) {
